@@ -33,11 +33,16 @@ import (
 // Command line flag parameters
 var (
 	flagListen string
+	devListen  string
 )
 
 func init() {
 	flag.StringVar(
 		&flagListen, "l", "localhost:2020", "listen on host:port",
+	)
+
+	flag.StringVar(
+		&devListen, "d", "/dev/video0", "/dev/video0",
 	)
 }
 
@@ -156,7 +161,7 @@ type source struct {
 
 func newSource(h *hub) *source {
 	// Open device
-	dev, err := v4l2.Open("/dev/video0")
+	dev, err := v4l2.Open(devListen)
 	if nil != err {
 		log.Fatal(err)
 	}
@@ -170,11 +175,13 @@ func newSource(h *hub) *source {
 		log.Fatal(err)
 	}
 
+	fmt.Println("before Set Bitrate")
+
 	// Set bitrate
 	if err := dev.SetBitrate(1500000); nil != err {
 		log.Fatal(err)
 	}
-
+	fmt.Println("after Set Bitrate")
 	return &source{
 		device: dev,
 		hub:    h,
@@ -213,8 +220,10 @@ func serveWs(h *hub, w http.ResponseWriter, r *http.Request) {
 	// Go routine writes new MP4 fragment to client websocket
 	go func(c *client) {
 		defer func() {
+			fmt.Println("closing socket")
 			c.conn.Close()
 		}()
+		fmt.Println("starting socket")
 
 		for {
 			select {
@@ -250,14 +259,18 @@ func main() {
 	if nil != err {
 		log.Fatal(err)
 	}
-
+	fmt.Println("Starting Hub")
 	// One-to-many hub broadcasts NAL units as MP4 fragments to clients
 	hub := newHub()
 	go hub.run()
 
+	fmt.Println("Starting Source")
+
 	// Open source
 	src := newSource(hub)
 	go src.run()
+
+	fmt.Println("Starting Server")
 
 	http.HandleFunc("/websocket", func(w http.ResponseWriter, r *http.Request) {
 		serveWs(hub, w, r)
