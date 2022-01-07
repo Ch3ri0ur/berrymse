@@ -21,8 +21,18 @@ enabled in `/boot/config.txt`.
 
 To fetch dependencies:
 
+Linux:
+
     GOOS=linux go get -v ./...
-    go get github.com/markbates/pkger/cmd/pkger
+    go install github.com/markbates/pkger/cmd/pkger
+
+
+Windows:
+
+    set GOOS=linux
+    go get -v ./...
+    go install github.com/markbates/pkger/cmd/pkger
+
 
 To build:
 
