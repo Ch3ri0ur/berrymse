@@ -25,9 +25,9 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/ch3ri0ur/go-v4l2"
 	"github.com/gorilla/websocket"
 	"github.com/markbates/pkger"
-	"github.com/thinkski/go-v4l2"
 )
 
 // Command line flag parameters
