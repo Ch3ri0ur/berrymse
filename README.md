@@ -21,20 +21,35 @@ enabled in `/boot/config.txt`.
 
 To fetch dependencies:
 
+Linux:
+
     GOOS=linux go get -v ./...
-    go get github.com/markbates/pkger/cmd/pkger
+    go install github.com/markbates/pkger/cmd/pkger
+
+
+Windows:
+
+    set GOOS=linux
+    go get -v ./...
+    go install github.com/markbates/pkger/cmd/pkger
+
 
 To build:
 
     make
 
+or:
+
+    make armv6l
+    make armv7l
+
 To run, copy the appropriate `berrymse` executable to the Raspberry Pi and run:
 
-	./berrymse -l <raspberry pi ip address>:2020
+	./berrymse -l <raspberry pi ip address>:2020 -d /dev/video<X>
 
 For example:
 
-    ./berrymse -l 192.168.2.1:2020
+    ./berrymse -l 192.168.2.1:2020 -d /dev/video0
 
 The Raspberry Pi Zero uses the `armv6l/berrymse` executable. Other models use
 the `armv7l/berrymse` executable.
