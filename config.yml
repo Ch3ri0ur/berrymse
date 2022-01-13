@@ -1,0 +1,5 @@
+camera:
+  sourceFD: "/dev/video0"
+
+server:
+  url: "0.0.0.0:80"

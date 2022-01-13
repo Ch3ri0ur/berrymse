@@ -25,6 +25,8 @@ Linux:
 
     GOOS=linux go get -v ./...
     go install github.com/markbates/pkger/cmd/pkger
+    go install github.com/spf13/viper
+    go install github.com/spf13/pflag
 
 
 Windows:
@@ -32,6 +34,8 @@ Windows:
     set GOOS=linux
     go get -v ./...
     go install github.com/markbates/pkger/cmd/pkger
+    go install github.com/spf13/viper
+    go install github.com/spf13/pflag
 
 
 To build:
