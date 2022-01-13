@@ -32,12 +32,34 @@ window.onload = function() {
     // ITU-T H.264 specification for details.
     let mime = 'video/mp4; codecs="avc1.640028"';
     let sourceBuffer = mediaSource.addSourceBuffer(mime);
-
+    let queue = [null];
     // received file or media segment
     ws.onmessage = function(event) {
-      sourceBuffer.appendBuffer(event.data);
-    }
+      // console.log("message")
+        if (sourceBuffer.updating) {
+          queue[0]=event.data;
+        } else {
+          sourceBuffer.appendBuffer(event.data);
+        }
 
+        // if (sourceBuffer.updating || queue.length > 0) {
+        //   queue=[event.data];
+        // } else {
+        //   sourceBuffer.appendBuffer(event.data);
+        // }
+      
+    }
+    sourceBuffer.addEventListener('updateend', function() {
+      // console.log(queue.length)
+      if (queue[0]!=null && !sourceBuffer.updating) {
+        sourceBuffer.appendBuffer(queue[0]);
+        queue[0]=null;
+      }
+      // if (queue.length > 0 && !sourceBuffer.updating) {
+      //   sourceBuffer.appendBuffer(queue.shift());
+      // }
+    }
+  , false);
     // remote closed websocket. end-of-stream.
     ws.onclose = function(event) {
       mediaSource.endOfStream();

@@ -1,0 +1,15 @@
+[Unit]
+Description=Berrymse
+BindsTo=dev-video0.device
+After=dev-video0.device
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/home/pi/berrymse
+ExecStartPre=/bin/sleep 10
+ExecStart=/home/pi/berrymse/armv7l/berrymse -l 0.0.0.0:80
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
