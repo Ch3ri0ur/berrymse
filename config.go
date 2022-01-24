@@ -9,6 +9,9 @@ type Configurations struct {
 // CameraConfigurations Struct exported
 type CameraConfigurations struct {
 	SourceFD string
+	Width    int
+	Height   int
+	Bitrate  int
 }
 
 // ServerConfigurations Struct exported
