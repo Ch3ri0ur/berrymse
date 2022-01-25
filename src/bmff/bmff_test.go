@@ -1,4 +1,4 @@
-package main
+package bmff
 
 import (
 	"bytes"
@@ -14,8 +14,8 @@ func TestWriteFTYP(t *testing.T) {
 	}
 	defer dst.Close()
 
-	writeFTYP(dst)
-	writeMOOV(dst, 1280, 720)
+	WriteFTYP(dst)
+	WriteMOOV(dst, 1280, 720)
 
 	src, err := ioutil.ReadFile("testdata/acai.264")
 	if nil != err {
@@ -28,8 +28,8 @@ func TestWriteFTYP(t *testing.T) {
 	for _, nal := range nals {
 		if len(nal) > 0 {
 			if nal[0]&0x1f < 6 {
-				writeMOOF(dst, n, nal)
-				writeMDAT(dst, nal)
+				WriteMOOF(dst, n, nal)
+				WriteMDAT(dst, nal)
 				n += 1
 			}
 		}

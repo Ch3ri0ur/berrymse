@@ -22,7 +22,7 @@ armv6l: pkged.go
 	set GOARCH=arm
 	set GOARM=6
 	set GOOS=linux
-	go build -v -o ./armv6l/berrymse -ldflags="-w -s"
+	go build -v -o ./armv6l/berrymse -ldflags="-w -s" ./cmd/berrymse
 
 #Build instruction for ARMV7 on Windows
 # - Create folder armv7l if not exist
@@ -33,7 +33,7 @@ armv7l: pkged.go
 	set GOARCH=arm
 	set GOARM=7
 	set GOOS=linux
-	go build -v -o ./armv7l/berrymse -ldflags="-w -s"
+	go build -v -o ./armv7l/berrymse -ldflags="-w -s" ./cmd/berrymse
 
 
 #Clean up for Windows
@@ -55,7 +55,7 @@ else #If Linux
 # - Setting env.-variables and let Go build executable and store it in folder armv6l (-w No DWARF debugging information, -s No generation of the Go symbol table)
 armv6l: pkged.go
 	mkdir -p armv6l
-	GOARCH=arm GOARM=7 GOOS=linux go build -v -o ./armv6l/berrymse -ldflags="-w -s"
+	GOARCH=arm GOARM=7 GOOS=linux go build -v -o ./armv6l/berrymse -ldflags="-w -s" ./cmd/berrymse
 
 #Build instruction for ARMV7  on Linux
 # - Creating folder armv7l
@@ -63,7 +63,7 @@ armv6l: pkged.go
 # - Setting env.-variables and let Go build executable and store it in folder armv7l (-w No DWARF debugging information, -s No generation of the Go symbol table)
 armv7l: pkged.go
 	mkdir -p armv7l
-	GOARCH=arm GOARM=7 GOOS=linux go build -v -o ./armv7l/berrymse -ldflags="-w -s"
+	GOARCH=arm GOARM=7 GOOS=linux go build -v -o ./armv7l/berrymse -ldflags="-w -s" ./cmd/berrymse
 
 
 #Clean up for Linux
