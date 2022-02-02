@@ -3,7 +3,6 @@ package main
 import (
 	//CMD Prints
 	"fmt"
-
 	config "github.com/ch3ri0ur/berrymse/src/config"
 )
 

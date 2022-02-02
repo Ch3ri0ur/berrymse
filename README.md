@@ -25,8 +25,6 @@ Linux:
 
     GOOS=linux go get -v ./...
     go install github.com/markbates/pkger/cmd/pkger
-    go install github.com/spf13/viper
-    go install github.com/spf13/pflag
 
 
 Windows:
@@ -34,8 +32,6 @@ Windows:
     set GOOS=linux
     go get -v ./...
     go install github.com/markbates/pkger/cmd/pkger
-    go install github.com/spf13/viper
-    go install github.com/spf13/pflag
 
 
 To build:
@@ -60,3 +56,9 @@ the `armv7l/berrymse` executable.
 
 The webpage will show a live video stream with approximately 200ms of latency.
 The browser will buffer frames, providing a lookback window.
+
+## Settings
+
+Bitrate on default width height at least 1 400 000, if lower it will break
+
+width height seam to not work

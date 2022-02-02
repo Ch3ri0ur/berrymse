@@ -90,7 +90,7 @@ func FlagInit() {
 		"listen on host:port",
 	)
 
-	//Flag to change the Device input file
+	//Flag to change the Device input file / device nodes
 	flag.StringP("Camera.SourceFD",
 		"d",
 		"/dev/video0",
@@ -113,7 +113,7 @@ func FlagInit() {
 
 	//Flag to change the bitrate video
 	flag.IntP("Camera.Bitrate",
-		"w",
+		"b",
 		1500000,
 		"Bitrate",
 	)

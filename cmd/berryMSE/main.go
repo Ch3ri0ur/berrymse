@@ -74,7 +74,7 @@ func main() {
 	http.HandleFunc("/websocket", func(w http.ResponseWriter, r *http.Request) {
 		Hub.ServeWs(hub, w, r)
 	})
-	http.Handle("/", http.FileServer(pkger.Dir("/web/static")))
+	http.Handle("/", http.FileServer(pkger.Dir("/cmd/berryMSE/web/static")))
 
 	// Start server
 	fmt.Printf("Listening on http://%v:%v\n", host, port)
