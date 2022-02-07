@@ -131,7 +131,7 @@ func init() {
 
 	//Flag to change the bitrate video
 	flag.IntP("Camera.Bitrate",
-		"w",
+		"b",
 		1500000,
 		"Bitrate",
 	)
@@ -355,8 +355,8 @@ func newSource(h *hub) *source {
 
 	// Set pixel format
 	if err := dev.SetPixelFormat(
-		1280,
-		720,
+		configuration.Camera.Width,
+		configuration.Camera.Height,
 		v4l2.V4L2_PIX_FMT_H264,
 	); nil != err {
 		log.Fatal(err)

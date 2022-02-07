@@ -14,25 +14,25 @@ all: armv6l armv7l
 ifeq ($(OS),Windows_NT) #IF Windows
 
 #Build instruction for ARMV6 on Windows
-# - Creating folder armv6l if not exist
 # - Setting env.-variables
+# - Creating folder armv6l if not exist
 # - Let Go build executable and store it in folder armv6l (-w No DWARF debugging information, -s No generation of the Go symbol table)
+armv6l: export GOARCH = arm
+armv6l: export GOARM = 6
+armv6l: export GOOS = linux
 armv6l: pkged.go
 	if not exist armv6l mkdir armv6l
-	set GOARCH=arm
-	set GOARM=6
-	set GOOS=linux
 	go build -v -o ./armv6l/berrymse -ldflags="-w -s"
 
 #Build instruction for ARMV7 on Windows
-# - Create folder armv7l if not exist
 # - Setting env.-variables
+# - Create folder armv7l if not exist
 # - Let Go build executable and store it in folder armv7l (-w No DWARF debugging information, -s No generation of the Go symbol table)
+armv7l: export GOARCH = arm
+armv7l: export GOARM = 7
+armv7l: export GOOS = linux
 armv7l: pkged.go
 	if not exist armv7l mkdir armv7l
-	set GOARCH=arm
-	set GOARM=7
-	set GOOS=linux
 	go build -v -o ./armv7l/berrymse -ldflags="-w -s"
 
 
