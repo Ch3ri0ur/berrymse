@@ -137,8 +137,7 @@ window.onload = function () {
             };
             onupdate = function () {
                 if (queue.length > 0 && !sourceBuffer.updating) {
-                    console.log("updateend");
-
+                    // console.log("updateend");
                     sourceBuffer.appendBuffer(queue.shift());
                 }
             };
