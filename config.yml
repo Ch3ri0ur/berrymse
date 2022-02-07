@@ -1,0 +1,8 @@
+camera:
+  sourceFD: "/dev/video0"
+  width: 1280
+  height: 720
+  bitrate: 1500000
+
+server:
+  url: "0.0.0.0:80"
