@@ -1,14 +1,15 @@
 window.onload = function () {
+    // select video element
     let videoElement = document.querySelector("video");
-    // select button element
-
+    // select play, skip and reset button element
     let playButton = document.getElementById("play-button");
     let autoSkipButton = document.getElementById("auto-skip-button");
-
-    // select log button element
     let resetButton = document.getElementById("reset-button");
+
     let ws = null;
     let auto_skip = true;
+    
+    // add start stop functionality to play button
     playButton.addEventListener("click", function () {
         if (videoElement.paused) {
             videoElement.play();
@@ -19,6 +20,7 @@ window.onload = function () {
         }
     });
 
+    // add auto skip functionality to auto skip button
     autoSkipButton.addEventListener("click", function () {
         if (auto_skip) {
             auto_skip = false;
@@ -29,11 +31,14 @@ window.onload = function () {
         }
     });
 
+    // add reset functionality to reset button
     resetButton.addEventListener("click", function () {
         if (window.MediaSource) {
             if (ws !== null) {
+                // if websocket exists, close it
                 ws.close();
             }
+            // reset video element
             let mediaSource = new MediaSource();
             videoElement.loop = false;
             videoElement.src = URL.createObjectURL(mediaSource);
@@ -67,39 +72,41 @@ window.onload = function () {
         function startConnection(params) {
             // remote pushes media segments via websocket
             ws = new WebSocket("ws://" + location.hostname + (location.port ? ":" + location.port : "") + "/websocket");
+            
+            // Uncomment if the websocket connection comes from a remote server
             // ws = new WebSocket("ws://" + "79.208.31.62" + "/websocket");
 
             ws.binaryType = "arraybuffer";
+            // queue for saving frames to be played
             let queue = [];
 
-            // received file or media segment
+            // received media segment
             ws.onmessage = function (event) {
-                // console.log("message")
-                // check if frame is iframe or dframe
+                // check data is a frame (has mdat) and if it is an inter(i)-frame
                 let [is_mdat, is_iframe] = checkFrameType(event.data);
+                // if it is not a frame it is probably a setup packet and still goes into the Buffer
                 if (!is_mdat) {
-                    console.log("whoknowsframe");
-
+                    // 
                     sourceBuffer.appendBuffer(event.data);
-                    console.log("not mdat");
                     return;
                 }
+                // data is a frame but frame type does not match -> skip
                 if (is_iframe === null) {
-                    console.log("not iframe or dframe");
-
+                    console.log("not iframe or pframe");
                     return;
                 }
+                // data is an iframe
                 if (is_iframe === true) {
-                    // iframe
+                    // reset queue
                     queue.length = 0;
-                    // // sourceBuffer.remove(0, sourceBuffer.buffered.end(sourceBuffer.buffered.length));
+                    // if the sourceBuffer is still updating use queue otherwise append buffer
                     if (sourceBuffer.updating) {
                         queue.push(event.data);
                     } else {
-                        // console.log("iframe");
                         sourceBuffer.appendBuffer(event.data);
                     }
 
+                    // if auto skip is enabled and to much is buffered skip forward, except if the video is hidden (tab is in background)
                     let buffered = videoElement.buffered;
                     if (buffered.length > 0) {
                         if (auto_skip && videoElement.currentTime < videoElement.buffered.end(videoElement.buffered.length - 1) - 1) {
@@ -112,17 +119,18 @@ window.onload = function () {
                         }
                     }
                 } else {
-                    // dframe
-
+                    // data is not an iframe 
+                    // if the sourceBuffer is still updating or there are frames in the queue, use the queue. Otherwise append to buffer.
                     if (sourceBuffer.updating || queue.length > 0) {
                         queue.push(event.data);
                     } else {
-                        // console.log("dframe");
                         sourceBuffer.appendBuffer(event.data);
                     }
                 }
             };
+
             // remote closed websocket. end-of-stream.
+            // Looked into automatically restarting the stream, but that creates a recursive problem right now.
             ws.onclose = function (event) {
                 console.log("remote closed websocket");
                 // mediaSource.endOfStream();
@@ -135,9 +143,10 @@ window.onload = function () {
             ws.onerror = function (e) {
                 console.log("Error: " + e.data);
             };
+
+            //update function for sourceBuffer, it checks if there are any frames in the queue and if so appends them 
             onupdate = function () {
                 if (queue.length > 0 && !sourceBuffer.updating) {
-                    // console.log("updateend");
                     sourceBuffer.appendBuffer(queue.shift());
                 }
             };
@@ -150,18 +159,18 @@ window.onload = function () {
 };
 
 function checkFrameType(data) {
-    let mdat = new Uint8Array([116, 114, 117, 110]);
+    // check in trun box if data is an iframe or pframe
+    let mdat = new Uint8Array([116, 114, 117, 110]); // spells trun
     let is_iframe = null;
     let is_mdat = false;
     if (arraybufferEqual(data.slice(76, 80), mdat.buffer)) {
-        // console.log("mdat");
+        // check if mdat is in correct position if yes -> it is a frame (has mdat)
         is_mdat = true;
 
         let view = new Uint8Array(data.slice(92, 93));
-        // check if iframe or dframe
-        // console.log(view);
+        // if it is a frame we can check if it is an iframe
         if (view[0] === 1) {
-            // console.log("dframe");
+            // console.log("not iframe");
             is_iframe = false;
         } else if (view[0] === 2) {
             // console.log("iframe");
@@ -171,6 +180,7 @@ function checkFrameType(data) {
     return [is_mdat, is_iframe];
 }
 
+// helper function to check if two arraybuffers are equal
 function arraybufferEqual(buf1, buf2) {
     if (buf1 === buf2) {
         return true;
