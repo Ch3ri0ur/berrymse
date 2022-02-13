@@ -14,6 +14,11 @@ each received buffer to the media source for playback.
 
 ## Quickstart
 
+Download executable from releases and run on a Raspberry Pi 32-bit (Buster) with a Raspberry Pi camera as `/dev/video0`.
+
+
+
+
 This demo requires a Raspberry Pi with Camera Module (USB Video Class devices
 not currently supported). As it uses the Video4Linux2 interface to access the
 camera, the Broadcom v4l2 driver must be installed and the camera must be
@@ -56,3 +61,7 @@ the `armv7l/berrymse` executable.
 
 The webpage will show a live video stream with approximately 200ms of latency.
 The browser will buffer frames, providing a lookback window.
+
+## Autostart service
+
+In order to run the executable automatically please use the `register.sh` script from the for_autostart folder. There you can find a set of convenience scripts.
