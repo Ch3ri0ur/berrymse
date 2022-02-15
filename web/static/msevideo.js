@@ -8,7 +8,7 @@ window.onload = function () {
 
     let ws = null;
     let auto_skip = true;
-    
+
     // add start stop functionality to play button
     playButton.addEventListener("click", function () {
         if (videoElement.paused) {
@@ -65,16 +65,16 @@ window.onload = function () {
         // profile, flags, and level (respectively, one byte each). See
         // ITU-T H.264 specification for details.
         let mediaSource = e.target;
-        let mime = 'video/mp4; codecs="avc1.640028"';
-        let sourceBuffer = mediaSource.addSourceBuffer(mime);
+
+        let sourceBuffer = null;
 
         // start websocket connection function
         function startConnection(params) {
             // remote pushes media segments via websocket
-            ws = new WebSocket("ws://" + location.hostname + (location.port ? ":" + location.port : "") + "/websocket");
-            
+            // ws = new WebSocket("ws://" + location.hostname + (location.port ? ":" + location.port : "") + "/websocket");
+
             // Uncomment if the websocket connection comes from a remote server
-            // ws = new WebSocket("ws://" + "79.208.31.62" + "/websocket");
+            ws = new WebSocket("ws://" + "wpplr.cc" + "/websocket");
 
             ws.binaryType = "arraybuffer";
             // queue for saving frames to be played
@@ -86,7 +86,16 @@ window.onload = function () {
                 let [is_mdat, is_iframe] = checkFrameType(event.data);
                 // if it is not a frame it is probably a setup packet and still goes into the Buffer
                 if (!is_mdat) {
-                    // 
+                    //
+                    console.log("dynamically set codec string: " + findCodecString(event.data));
+                    let mime = 'video/mp4; codecs="avc1.'+ findCodecString(event.data) +'"';
+                    sourceBuffer = mediaSource.addSourceBuffer(mime);
+                    onupdate = function () {
+                        if (queue.length > 0 && !sourceBuffer.updating) {
+                            sourceBuffer.appendBuffer(queue.shift());
+                        }
+                    };
+                    sourceBuffer.addEventListener("updateend", onupdate, false);
                     sourceBuffer.appendBuffer(event.data);
                     return;
                 }
@@ -119,7 +128,7 @@ window.onload = function () {
                         }
                     }
                 } else {
-                    // data is not an iframe 
+                    // data is not an iframe
                     // if the sourceBuffer is still updating or there are frames in the queue, use the queue. Otherwise append to buffer.
                     if (sourceBuffer.updating || queue.length > 0) {
                         queue.push(event.data);
@@ -144,19 +153,42 @@ window.onload = function () {
                 console.log("Error: " + e.data);
             };
 
-            //update function for sourceBuffer, it checks if there are any frames in the queue and if so appends them 
-            onupdate = function () {
-                if (queue.length > 0 && !sourceBuffer.updating) {
-                    sourceBuffer.appendBuffer(queue.shift());
-                }
-            };
-            sourceBuffer.addEventListener("updateend", onupdate, false);
+            //update function for sourceBuffer, it checks if there are any frames in the queue and if so appends them
+
         }
 
         // start websocket connection
         startConnection();
     }
 };
+
+function findCodecString(data) {
+    // check in trun box if data is an iframe or pframe
+    let avcC = new Uint8Array([97, 118, 99, 67]); // spells avcC
+    let data_array = new Uint8Array(data);
+
+    function isavcC(element, index, array) {
+        if (element == 97) {
+            let tmp = array.slice(index, index + 4);
+            if (arraybufferEqual(tmp.buffer, avcC.buffer)) {
+                return true;
+            }
+        }
+        return false;
+    };
+
+    index = data_array.findIndex(isavcC);
+    if (index === -1) {
+        throw Error("avcC not found");
+    }
+    let codec_data_buffer = data.slice(index+4+1,index+8)
+    let bufferToHex = (buffer)=> {
+        return [...new Uint8Array (buffer)]
+            .map (b => b.toString (16).padStart (2, "0"))
+            .join ("");
+    }
+    return bufferToHex(codec_data_buffer)
+}
 
 function checkFrameType(data) {
     // check in trun box if data is an iframe or pframe
