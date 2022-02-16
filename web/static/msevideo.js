@@ -71,33 +71,42 @@ window.onload = function () {
         // start websocket connection function
         function startConnection(params) {
             // remote pushes media segments via websocket
-            // ws = new WebSocket("ws://" + location.hostname + (location.port ? ":" + location.port : "") + "/websocket");
+            ws = new WebSocket("ws://" + location.hostname + (location.port ? ":" + location.port : "") + "/video_websocket");
 
             // Uncomment if the websocket connection comes from a remote server
-            ws = new WebSocket("ws://" + "wpplr.cc" + "/websocket");
+            // ws = new WebSocket("ws://" + "wpplr.cc" + "/video_websocket");
 
             ws.binaryType = "arraybuffer";
             // queue for saving frames to be played
             let queue = [];
-
+            let is_first = true;
             // received media segment
             ws.onmessage = function (event) {
                 // check data is a frame (has mdat) and if it is an inter(i)-frame
                 let [is_mdat, is_iframe] = checkFrameType(event.data);
                 // if it is not a frame it is probably a setup packet and still goes into the Buffer
                 if (!is_mdat) {
-                    //
-                    console.log("dynamically set codec string: " + findCodecString(event.data));
-                    let mime = 'video/mp4; codecs="avc1.'+ findCodecString(event.data) +'"';
-                    sourceBuffer = mediaSource.addSourceBuffer(mime);
-                    onupdate = function () {
-                        if (queue.length > 0 && !sourceBuffer.updating) {
-                            sourceBuffer.appendBuffer(queue.shift());
-                        }
-                    };
-                    sourceBuffer.addEventListener("updateend", onupdate, false);
-                    sourceBuffer.appendBuffer(event.data);
-                    return;
+                    // Get the first websocket message ( it should have ftyp moov with information about the stream)
+                    if (is_first) {
+                        is_first = false;
+                        // dynamically set the codec string (only works for h.264 in mp4 with avcC box)
+                        let codec_string = findCodecString(event.data); // profile, profile compatibility and level as hex string
+                        console.log("dynamically set codec string: " + codec_string);
+                        let mime = 'video/mp4; codecs="avc1.' + codec_string + '"';
+                        // added sourcebuffer here, because information about the codec is necessary
+                        sourceBuffer = mediaSource.addSourceBuffer(mime);
+                        // add update function for sourcebuffer
+                        onupdate = function () {
+                            if (queue.length > 0 && !sourceBuffer.updating) {
+                                sourceBuffer.appendBuffer(queue.shift());
+                            }
+                        };
+                        sourceBuffer.addEventListener("updateend", onupdate, false);
+                        sourceBuffer.appendBuffer(event.data);
+                        return;
+                    }
+                    // this should not be reached^
+                    console.log("Got another ftyp and moov packet ");
                 }
                 // data is a frame but frame type does not match -> skip
                 if (is_iframe === null) {
@@ -154,7 +163,6 @@ window.onload = function () {
             };
 
             //update function for sourceBuffer, it checks if there are any frames in the queue and if so appends them
-
         }
 
         // start websocket connection
@@ -164,10 +172,12 @@ window.onload = function () {
 
 function findCodecString(data) {
     // check in trun box if data is an iframe or pframe
-    let avcC = new Uint8Array([97, 118, 99, 67]); // spells avcC
     let data_array = new Uint8Array(data);
 
+    // check function to search for index of avcC box
+    let avcC = new Uint8Array([97, 118, 99, 67]); // spells avcC
     function isavcC(element, index, array) {
+        // if the first element matches, check the rest else return false
         if (element == 97) {
             let tmp = array.slice(index, index + 4);
             if (arraybufferEqual(tmp.buffer, avcC.buffer)) {
@@ -175,19 +185,18 @@ function findCodecString(data) {
             }
         }
         return false;
-    };
+    }
 
     index = data_array.findIndex(isavcC);
     if (index === -1) {
         throw Error("avcC not found");
     }
-    let codec_data_buffer = data.slice(index+4+1,index+8)
-    let bufferToHex = (buffer)=> {
-        return [...new Uint8Array (buffer)]
-            .map (b => b.toString (16).padStart (2, "0"))
-            .join ("");
-    }
-    return bufferToHex(codec_data_buffer)
+    // get condec data relative to found index
+    let codec_data_buffer = data.slice(index + 4 + 1, index + 8);
+    let bufferToHex = (buffer) => {
+        return [...new Uint8Array(buffer)].map((b) => b.toString(16).padStart(2, "0")).join("");
+    };
+    return bufferToHex(codec_data_buffer);
 }
 
 function checkFrameType(data) {

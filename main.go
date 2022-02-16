@@ -460,7 +460,7 @@ func main() {
 
 	fmt.Println("Starting Server")
 
-	http.HandleFunc("/websocket", func(w http.ResponseWriter, r *http.Request) {
+	http.HandleFunc("/video_websocket", func(w http.ResponseWriter, r *http.Request) {
 		serveWs(hub, w, r)
 	})
 	http.Handle("/", http.FileServer(pkger.Dir("/web/static")))
