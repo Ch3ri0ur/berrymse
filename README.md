@@ -61,4 +61,4 @@ The browser will buffer frames, providing a lookback window.
 
 Bitrate on default width height at least 1 400 000, if lower it will break
 
-width height seam to not work
+width height seems to not work

@@ -1,7 +1,10 @@
 package bmff
 
 import (
+	// Bytes to transform values to a bitstream
 	"bytes"
+
+	// IO Writer to write Bitstream
 	"io"
 )
 
@@ -17,10 +20,13 @@ import (
 //a := binary.LittleEndian.Uint16(sampleA)
 //a := binary.BigEndian.Uint16(sampleA)
 
-//Writes Int as Byte Array in BIG-ENDIAN style. Highest Byte of the Int is at [0]
-//v=value n=nbytes
+// Writes Int as Byte Array of n Length in BIG-ENDIAN style into given Bytebuffer(io.Writer)
+// Lowest Byte of the given Int is at [n-1] Pos
+// v = value to write, n = number of bytes to write
 func writeInt(w io.Writer, v int, n int) {
 	b := make([]byte, n)
+	// Write lowest Byte of Value in Highest Byte that isn't set
+	// Shifting value by one Byte and do it again (next Byte of value)
 	for i := 0; i < n; i++ {
 		b[n-i-1] = byte(v & 0xff)
 		v >>= 8
@@ -28,10 +34,15 @@ func writeInt(w io.Writer, v int, n int) {
 	w.Write(b)
 }
 
+// Writes string in given Bytebuffer(io.Writer)
 func writeString(w io.Writer, s string) {
 	w.Write([]byte(s))
 }
 
+// Writes Box into given Bytebuffer(io.Writer)
+// 1. Length of Box (4Byte)
+// 2. Name of Box (4byte)
+// 3. Content via Callback
 func writeTag(w io.Writer, tag string, cb func(w io.Writer)) {
 	var b bytes.Buffer
 	cb(&b)                    // callback
@@ -41,6 +52,7 @@ func writeTag(w io.Writer, tag string, cb func(w io.Writer)) {
 }
 
 // File Type Box
+// Defines Type of File, Version and Compatible ISO Files.
 func WriteFTYP(w io.Writer) {
 	writeTag(w, "ftyp", func(w io.Writer) {
 		writeString(w, "isom")                 // major brand
@@ -50,15 +62,17 @@ func WriteFTYP(w io.Writer) {
 }
 
 // Movie Box
-func WriteMOOV(w io.Writer, width, height uint16) {
+// Metadata Container for Presentation.
+func WriteMOOV(w io.Writer, width, height uint16, sps, pps []byte) {
 	writeTag(w, "moov", func(w io.Writer) {
 		writeMVHD(w)
-		writeTRAK(w, width, height)
+		writeTRAK(w, width, height, sps, pps)
 		writeMVEX(w)
 	})
 }
 
 // Movie Header Box
+// Generic Info about the movie
 func writeMVHD(w io.Writer) {
 	writeTag(w, "mvhd", func(w io.Writer) {
 		writeInt(w, 0, 4)          // version and flags
@@ -91,10 +105,11 @@ func writeMVHD(w io.Writer) {
 }
 
 // Track Box
-func writeTRAK(w io.Writer, width, height uint16) {
+// Metadata to one stream
+func writeTRAK(w io.Writer, width, height uint16, sps, pps []byte) {
 	writeTag(w, "trak", func(w io.Writer) {
 		writeTKHD(w, width, height)
-		writeMDIA(w, width, height)
+		writeMDIA(w, width, height, sps, pps)
 	})
 }
 
@@ -128,14 +143,15 @@ func writeTKHD(w io.Writer, width, height uint16) {
 }
 
 // Media Box
-func writeMDIA(w io.Writer, width, height uint16) {
+func writeMDIA(w io.Writer, width, height uint16, sps, pps []byte) {
 	writeTag(w, "mdia", func(w io.Writer) {
 		writeMDHD(w)
 		writeHDLR(w)
-		writeMINF(w, width, height)
+		writeMINF(w, width, height, sps, pps)
 	})
 }
 
+// Media Header Box
 func writeMDHD(w io.Writer) {
 	writeTag(w, "mdhd", func(w io.Writer) {
 		writeInt(w, 0, 4)      // version and flags
@@ -162,14 +178,16 @@ func writeHDLR(w io.Writer) {
 	})
 }
 
-func writeMINF(w io.Writer, width, height uint16) {
+// Media Information Box
+func writeMINF(w io.Writer, width, height uint16, sps, pps []byte) {
 	writeTag(w, "minf", func(w io.Writer) {
 		writeVMHD(w)
 		writeDINF(w)
-		writeSTBL(w, width, height)
+		writeSTBL(w, width, height, sps, pps)
 	})
 }
 
+// Video Media Header Box
 func writeVMHD(w io.Writer) {
 	writeTag(w, "vmhd", func(w io.Writer) {
 		writeInt(w, 1, 4) // version and flags
@@ -180,28 +198,33 @@ func writeVMHD(w io.Writer) {
 	})
 }
 
-//Data Information
+// Data Information Box
 func writeDINF(w io.Writer) {
 	writeTag(w, "dinf", func(w io.Writer) {
 		writeDREF(w)
 	})
 }
 
-//Data Reference
+// Data Reference Box
 func writeDREF(w io.Writer) {
 	writeTag(w, "dref", func(w io.Writer) {
 		writeInt(w, 0, 4) // version and flags
 		writeInt(w, 1, 4) // entry count
-		writeTag(w, "url ", func(w io.Writer) {
-			writeInt(w, 1, 4) // version and flags
-		})
+		writeURL(w)
 	})
 }
 
-// Samble Table
-func writeSTBL(w io.Writer, width, height uint16) {
+// URL Box
+func writeURL(w io.Writer) {
+	writeTag(w, "url ", func(w io.Writer) {
+		writeInt(w, 1, 4) // version and flags
+	})
+}
+
+// Sample Table Box
+func writeSTBL(w io.Writer, width, height uint16, sps, pps []byte) {
 	writeTag(w, "stbl", func(w io.Writer) {
-		writeSTSD(w, width, height)
+		writeSTSD(w, width, height, sps, pps)
 		writeSTSZ(w)
 		writeSTSC(w)
 		writeSTTS(w)
@@ -209,61 +232,58 @@ func writeSTBL(w io.Writer, width, height uint16) {
 	})
 }
 
-// Sample Description
-func writeSTSD(w io.Writer, width, height uint16) {
+// Sample Description Box
+func writeSTSD(w io.Writer, width, height uint16, sps, pps []byte) {
 	writeTag(w, "stsd", func(w io.Writer) {
 		writeInt(w, 0, 6) // reserved
 		writeInt(w, 1, 2) // data reference index
-		writeTag(w, "avc1", func(w io.Writer) {
-			writeInt(w, 0, 6)           // reserved
-			writeInt(w, 1, 2)           // data reference index
-			writeInt(w, 0, 2)           // pre-defined
-			writeInt(w, 0, 2)           // reserved
-			writeInt(w, 0, 4)           // pre-defined
-			writeInt(w, 0, 4)           // pre-defined
-			writeInt(w, 0, 4)           // pre-defined
-			writeInt(w, int(width), 2)  // width
-			writeInt(w, int(height), 2) // height
-			writeInt(w, 0x00480000, 4)  // horizontal resolution: 72 dpi
-			writeInt(w, 0x00480000, 4)  // vertical resolution: 72 dpi
-			writeInt(w, 0, 4)           // data size: 0
-			writeInt(w, 1, 2)           // frame count: 1
-			w.Write(make([]byte, 32))   // compressor name
-			writeInt(w, 0x18, 2)        // depth
-			writeInt(w, 0xffff, 2)      // pre-defined
-
-			// Raspberry Pi 3B+ SPS/PPS for H.264 Main 4.0
-			// Sequence Parameter Set
-			sps := []byte{
-				0x27, 0x64, 0x00, 0x28, 0xac, 0x2b, 0x40, 0x28,
-				0x02, 0xdd, 0x00, 0xf1, 0x22, 0x6a,
-			}
-			// Picture Parameter Set
-			pps := []byte{
-				0x28, 0xee, 0x02, 0x5c, 0xb0, 0x00,
-			}
-
-			// AVC Configuration Box
-			// MPEG-4 Part 15 extension
-			// See ISO/IEC 14496-15:2004 5.3.4.1.2
-			writeTag(w, "avcC", func(w io.Writer) {
-				writeInt(w, 1, 1)        // configuration version
-				writeInt(w, 0x64, 1)     // H.264 profile (0x64 == high)
-				writeInt(w, 0x00, 1)     // H.264 profile compatibility
-				writeInt(w, 0x28, 1)     // H.264 level (0x28 == 4.0)
-				writeInt(w, 0xff, 1)     // nal unit length - 1 (upper 6 bits == 1)
-				writeInt(w, 0xe1, 1)     // number of sps (upper 3 bits == 1)
-				writeInt(w, len(sps), 2) //len of sps
-				w.Write(sps)             //sps
-				writeInt(w, 1, 1)        // number of pps
-				writeInt(w, len(pps), 2) //len pps
-				w.Write(pps)             //pps
-			})
-		})
+		writeAVC1(w, width, height, sps, pps)
 	})
 }
 
-// Sample to Size
+// Advanced Codec (H264) Box
+func writeAVC1(w io.Writer, width, height uint16, sps, pps []byte) {
+	writeTag(w, "avc1", func(w io.Writer) {
+		writeInt(w, 0, 6)           // reserved
+		writeInt(w, 1, 2)           // data reference index
+		writeInt(w, 0, 2)           // pre-defined
+		writeInt(w, 0, 2)           // reserved
+		writeInt(w, 0, 4)           // pre-defined
+		writeInt(w, 0, 4)           // pre-defined
+		writeInt(w, 0, 4)           // pre-defined
+		writeInt(w, int(width), 2)  // width
+		writeInt(w, int(height), 2) // height
+		writeInt(w, 0x00480000, 4)  // horizontal resolution: 72 dpi
+		writeInt(w, 0x00480000, 4)  // vertical resolution: 72 dpi
+		writeInt(w, 0, 4)           // data size: 0
+		writeInt(w, 1, 2)           // frame count: 1
+		w.Write(make([]byte, 32))   // compressor name
+		writeInt(w, 0x18, 2)        // depth
+		writeInt(w, 0xffff, 2)      // pre-defined
+		writeAVCC(w, sps, pps)
+	})
+}
+
+// AVC Configuration Box
+// MPEG-4 Part 15 extension
+// See ISO/IEC 14496-15:2004 5.3.4.1.2
+func writeAVCC(w io.Writer, sps, pps []byte) {
+	writeTag(w, "avcC", func(w io.Writer) {
+		writeInt(w, 1, 1)        // configuration version
+		writeInt(w, 0x4d, 1)     // H.264 profile (0x64 == high)
+		writeInt(w, 0x40, 1)     // H.264 profile compatibility
+		writeInt(w, 0x29, 1)     // H.264 level (0x28 == 4.0)
+		writeInt(w, 0xff, 1)     // nal unit length - 1 (upper 6 bits == 1)
+		writeInt(w, 0xe1, 1)     // number of sps (upper 3 bits == 1)
+		writeInt(w, len(sps), 2) //len of sps
+		w.Write(sps)             //sps
+		writeInt(w, 1, 1)        // number of pps
+		writeInt(w, len(pps), 2) //len pps
+		w.Write(pps)             //pps
+	})
+}
+
+// Sample Size Box
 func writeSTSZ(w io.Writer) {
 	writeTag(w, "stsz", func(w io.Writer) {
 		writeInt(w, 0, 4) // version and flags
@@ -271,7 +291,7 @@ func writeSTSZ(w io.Writer) {
 		writeInt(w, 0, 4) // sample count
 	})
 }
-
+// Sample to Chunk Box
 func writeSTSC(w io.Writer) {
 	writeTag(w, "stsc", func(w io.Writer) {
 		writeInt(w, 0, 4) // version and flags
@@ -279,7 +299,7 @@ func writeSTSC(w io.Writer) {
 	})
 }
 
-// Sample to Time
+// Time to Sample Box
 func writeSTTS(w io.Writer) {
 	writeTag(w, "stts", func(w io.Writer) {
 		writeInt(w, 0, 4) // version and flags
@@ -287,6 +307,7 @@ func writeSTTS(w io.Writer) {
 	})
 }
 
+// Chunk Offset Box
 func writeSTCO(w io.Writer) {
 	writeTag(w, "stco", func(w io.Writer) {
 		writeInt(w, 0, 4) // version and flags
@@ -323,6 +344,7 @@ func writeTREX(w io.Writer) {
 }
 
 // Movie Fragment Box
+// The MOOF Box holds the information to a Movie Fragment, which is in the following MDAT Object.
 func WriteMOOF(w io.Writer, seq int, data []byte) {
 	writeTag(w, "moof", func(w io.Writer) {
 		writeMFHD(w, seq)
@@ -364,7 +386,7 @@ func writeTFDT(w io.Writer, seq int) {
 	})
 }
 
-// Track Run Box
+// Track Fragment Run Box
 func writeTRUN(w io.Writer, data []byte) {
 	writeTag(w, "trun", func(w io.Writer) {
 		writeInt(w, 0x00000305, 4) // version and flags
@@ -381,6 +403,7 @@ func writeTRUN(w io.Writer, data []byte) {
 }
 
 // Media Data Box
+// The Media Box holds an Media Sample. In this Project this is a NAL Unit.
 func WriteMDAT(w io.Writer, data []byte) {
 	writeTag(w, "mdat", func(w io.Writer) {
 		writeInt(w, len(data), 4)

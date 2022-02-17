@@ -42,10 +42,20 @@ func NewSource(h *hub.Hub, configuration config.Configurations) *Source {
 	fmt.Println("before Set Bitrate")
 
 	// Set bitrate
-	if err := dev.SetBitrate(int32(configuration.Camera.Bitrate)); nil != err {
-		log.Fatal(err)
+	if configuration.Camera.Bitrate > 0 {
+		if err := dev.SetBitrate(int32(configuration.Camera.Bitrate)); nil != err {
+			log.Fatal(err)
+		}
 	}
-	fmt.Println("after Set Bitrate")
+
+	// fmt.Println("Set Rotation")
+
+	// if configuration.Camera.Bitrate > 0 {
+	// 	if err := v4l2.setCodecControl(dev.fd, 0x00980922, int32(90)); nil != err {
+	// 		log.Fatal(err)
+	// 	}
+	// }
+
 	return &Source{
 		device: dev,
 		hub:    h,

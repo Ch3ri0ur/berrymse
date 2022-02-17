@@ -21,7 +21,6 @@ import (
 	//Websocket https://github.com/gorilla/websocket
 	"github.com/gorilla/websocket"
 
-
 	// OWN STUFF ##########################################################################
 
 	//Configuration
@@ -33,6 +32,8 @@ import (
 const (
 	nalTypeNonIDRCodedSlice = 1
 	nalTypeIDRCodedSlice    = 5
+	nalTypeSPS              = 7
+	nalTypePPS              = 8
 
 	// Time allowed to write a message to the peer.
 	writeWait = 10 * time.Second
@@ -40,11 +41,12 @@ const (
 
 // client structure
 type Client struct {
-	hub     *Hub
-	conn    *websocket.Conn // Websocket connection
-	frags   chan []byte     // Buffered channel of outbound MP4 fragments
-	n       int             // Frame number
-	haveIDR bool            // Received i-frame?
+	hub      *Hub
+	conn     *websocket.Conn // Websocket connection
+	frags    chan []byte     // Buffered channel of outbound MP4 fragments
+	n        int             // Frame number
+	haveInit bool            // Received InitialSegment
+	haveIDR  bool            // Received i-frame?
 }
 
 // hub maintains a set of active clients and broadcasts video to clients
@@ -65,6 +67,9 @@ func NewHub() *Hub {
 	}
 }
 
+var sps []byte
+var pps []byte
+
 // run processes register and unregister requests, and nal units
 func (h *Hub) Run(configuration config.Configurations) {
 	for {
@@ -73,10 +78,25 @@ func (h *Hub) Run(configuration config.Configurations) {
 		case c := <-h.register:
 			h.clients[c] = true
 
-			var frag bytes.Buffer
-			bmff.WriteFTYP(&frag)
-			bmff.WriteMOOV(&frag, uint16(configuration.Camera.Width), uint16(configuration.Camera.Height))
-			c.frags <- frag.Bytes()
+			if sps != nil && pps != nil {
+				var frag bytes.Buffer
+				bmff.WriteFTYP(&frag)
+				bmff.WriteMOOV(&frag, uint16(configuration.Camera.Width), uint16(configuration.Camera.Height), sps, pps)
+				c.frags <- frag.Bytes()
+				c.haveInit = true
+			}
+
+			// Raspberry Pi 3B+ SPS/PPS for H.264 Main 4.0 1280x720
+			// Sequence Parameter Set
+			// var sps = []byte{
+			// 	0x27, 0x64, 0x00, 0x28, 0xac, 0x2b, 0x40, 0x28,
+			// 	0x02, 0xdd, 0x00, 0xf1, 0x22, 0x6a,
+			// }
+
+			// // Picture Parameter Set
+			// var pps = []byte{
+			// 	0x28, 0xee, 0x02, 0x5c, 0xb0, 0x00,
+			// }
 
 		// Unregister request
 		case c := <-h.unregister:
@@ -86,56 +106,133 @@ func (h *Hub) Run(configuration config.Configurations) {
 			}
 
 		// New NAL from source
-		case nal := <-h.Nals:
-			nal = bytes.TrimPrefix(nal, []byte{0, 0, 0, 1})
-			if len(nal) == 0 {
-				break
-			}
-			nalType := (nal[0] & 0x1F)
-
-			//TODO OPTIMISING for multiple clients by extrakting msgbuilding out the loop of every client problematic is the client frame indexs that is different for each client
-
-			//Send new frag to all Clients that are registered.
-			for c := range h.clients {
-				//Buffer to fill with Header, info, frag
-				var frag bytes.Buffer
-
-				//Check nalType
-				//- When it is a "nalTypeIDRCodedSlice" (frag with IDR) it will set the flag of the client for having received a IDR (client.haveIDR), than fallthrough into the case nalTypeNonIDRCodedSlice" and send the frag
-				//- When it is a "nalTypeNonIDRCodedSlice" check if the client has ever received a "nalTypeIDRCodedSlice" (client.haveIDR), if yes than send the frag, if not just skip
-				//This will cause that the client will receive its first frag when it is a frag with idr. After that it will all send all slices to the client
+		case nals := <-h.Nals:
+			nals = bytes.TrimPrefix(nals, []byte{0, 0, 0, 1})
+			nalUnits := bytes.Split(nals, []byte{0, 0, 0, 1})
+			for _, nalUnit := range nalUnits {
+				if len(nalUnit) == 0 {
+					continue
+				}
+				nalType := (nalUnit[0] & 0x1F)
 				switch nalType {
-
-				//frag contains IDR. Initial frag for the client
-				case nalTypeIDRCodedSlice:
-					//Set Flag for client has received a
-					c.haveIDR = true
-					//Jump into the case "nalTypeNonIDRCodedSlice" to send the Data to the client
-					fallthrough
-
-				//frag contains no IDR
-				case nalTypeNonIDRCodedSlice:
-					if c.haveIDR {
-						bmff.WriteMOOF(&frag, c.n, nal)
-						bmff.WriteMDAT(&frag, nal)
-						c.n++
-
-						select {
-						// Write MP4 fragment
-						case c.frags <- frag.Bytes():
-
-						// Buffered channel full. Drop client.
-						default:
-							close(c.frags)
-							delete(h.clients, c)
+				case nalTypeSPS:
+					if sps == nil { // || bytes.Compare(sps, nalUnit) != 0 { // If check for changed SPS is needed
+						fmt.Println("SPS")
+						sps = make([]byte, len(nalUnit))
+						copy(sps, nalUnit)
+						fmt.Printf("%x\n", sps)
+						if pps == nil {
+							break
+						}
+						for c := range h.clients {
+							if !c.haveInit {
+								var frag bytes.Buffer
+								bmff.WriteFTYP(&frag)
+								bmff.WriteMOOV(&frag, uint16(configuration.Camera.Width), uint16(configuration.Camera.Height), sps, pps)
+								c.frags <- frag.Bytes()
+								c.haveInit = true
+							}
 						}
 					}
+				case nalTypePPS:
+					if pps == nil { // || bytes.Compare(pps, nalUnit) != 0 { // If check for changed PPS is needed
+						fmt.Println("PPS")
+						pps = make([]byte, len(nalUnit))
+						copy(pps, nalUnit)
+						fmt.Printf("%x\n", pps)
+						if sps == nil {
+							break
+						}
+						for c := range h.clients {
+							if !c.haveInit {
+								var frag bytes.Buffer
+								bmff.WriteFTYP(&frag)
+								bmff.WriteMOOV(&frag, uint16(configuration.Camera.Width), uint16(configuration.Camera.Height), sps, pps)
+								c.frags <- frag.Bytes()
+								c.haveInit = true
+							}
+						}
+					}
+				case nalTypeIDRCodedSlice:
+					fallthrough
+				case nalTypeNonIDRCodedSlice:
+					if nalType == nalTypeIDRCodedSlice {
+						fmt.Println("IDR")
+					} else {
+						//fmt.Println("Non-IDR")
+					}
+					for c := range h.clients {
+						if !c.haveInit {
+							fmt.Println("Client not Initialized")
+							continue
+						}
+						if nalType == nalTypeIDRCodedSlice {
+							c.haveIDR = true
+						}
+						if c.haveIDR {
+							var frag bytes.Buffer
+							bmff.WriteMOOF(&frag, c.n, nals)
+							bmff.WriteMDAT(&frag, nals)
+							c.n++
+							select {
+							// Write MP4 fragment
+							case c.frags <- frag.Bytes():
 
-				//If naltype doesnt fit just do nothing
+							// Buffered channel full. Drop client.
+							default:
+								close(c.frags)
+								delete(h.clients, c)
+							}
+						}
+					}
 				default:
-					// noop
+					fmt.Println("Non")
 				}
 			}
+
+			// //Send new frag to all Clients that are registered.
+			// for c := range h.clients {
+			// 	//Buffer to fill with Header, info, frag
+			// 	var frag bytes.Buffer
+
+			// 	//Check nalType
+			// 	//- When it is a "nalTypeIDRCodedSlice" (frag with IDR) it will set the flag of the client for having received a IDR (client.haveIDR), than fallthrough into the case nalTypeNonIDRCodedSlice" and send the frag
+			// 	//- When it is a "nalTypeNonIDRCodedSlice" check if the client has ever received a "nalTypeIDRCodedSlice" (client.haveIDR), if yes than send the frag, if not just skip
+			// 	//This will cause that the client will receive its first frag when it is a frag with idr. After that it will all send all slices to the client
+			// 	switch nalType {
+
+			// 	//frag contains IDR. Initial frag for the client
+			// 	case nalTypeIDRCodedSlice:
+			// 		fmt.Println("ISlice")
+			// 		//Set Flag for client has received a
+			// 		c.haveIDR = true
+			// 		//Jump into the case "nalTypeNonIDRCodedSlice" to send the Data to the client
+			// 		fallthrough
+
+			// 	//frag contains no IDR
+			// 	case nalTypeNonIDRCodedSlice:
+			// 		fmt.Println("NOT IFrame")
+			// 		if c.haveIDR {
+			// 			bmff.WriteMOOF(&frag, c.n, nal)
+			// 			bmff.WriteMDAT(&frag, nal)
+			// 			c.n++
+
+			// 			select {
+			// 			// Write MP4 fragment
+			// 			case c.frags <- frag.Bytes():
+
+			// 			// Buffered channel full. Drop client.
+			// 			default:
+			// 				close(c.frags)
+			// 				delete(h.clients, c)
+			// 			}
+			// 		}
+			// 	//If naltype doesnt fit just do nothing
+			// 	default:
+			// 		fmt.Println("Something else")
+			// 		// noop
+			// 	}
+			// }
 		}
 	}
 }
