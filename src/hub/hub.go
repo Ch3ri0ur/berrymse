@@ -156,11 +156,6 @@ func (h *Hub) Run(configuration config.Configurations) {
 				case nalTypeIDRCodedSlice:
 					fallthrough
 				case nalTypeNonIDRCodedSlice:
-					if nalType == nalTypeIDRCodedSlice {
-						fmt.Println("IDR")
-					} else {
-						//fmt.Println("Non-IDR")
-					}
 					for c := range h.clients {
 						if !c.haveInit {
 							fmt.Println("Client not Initialized")
