@@ -65,3 +65,8 @@ The browser will buffer frames, providing a lookback window.
 ## Autostart service
 
 In order to run the executable automatically please use the `register.sh` script from the for_autostart folder. There you can find a set of convenience scripts.
+## Settings
+
+Bitrate on default width height at least 1 400 000, if lower it will break
+
+width height seems to not work

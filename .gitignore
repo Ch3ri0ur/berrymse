@@ -1,2 +1,5 @@
 armv6l/
+armv7l/
 pkged.go
+
+.vscode/launch.json

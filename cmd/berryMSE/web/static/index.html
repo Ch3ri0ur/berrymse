@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>🍓 BerryMSE</title>
+    <link rel="author" href="//chris.hiszpanski.name" />
+    <link rel="license" href="//www.gnu.org/licenses/agpl-3.0.html" />
+    <link rel="stylesheet" href="msevideo.css" />
+    <script src="msevideo.js"></script>
+  </head>
+  <body>
+    <header>
+      <h1>🍓 BerryMSE</h1>
+    </header>
+    <div class="subtitle">
+      Low-latency H.264 from a Raspberry Pi&trade; via Media Source Extensions
+    </div>
+
+    <main>
+      <p>
+        Original Work:
+        Copyright 2020
+        <a href="//chris.hiszpanski.name">Chris Hiszpanski</a>.
+        All rights reserved.
+        <br>
+        Modified Work: 
+        Copyright 2022
+        <a href="wpplr.cc">Christian Wappler</a>.
+        All rights reserved.
+        <br>
+        The source code of this project is available on github at: <a href="https://github.com/Ch3ri0ur/berrymse">Ch3ri0ur/berrymse</a>.
+      </p>
+
+      <video autoplay controls muted></video>
+      <button id="play-button" type="button">Pause</button>
+      <button id="auto-skip-button" type="button">Auto Skip Enabled</button>
+      <button id="reset-button" type="button">Reset</button>
+
+      <p>
+        The Auto skip functionality works by skipping forward if it detects that the lag is larger than a second (This also happens if the video is paused). 
+        <br>
+        If a pause is necessary please deactivate it before pausing or using the timeline. 
+        <br>
+        The reset button renews the connection and video, please reset if the video hangs.
+      </p>
+      <p>
+        This is a demo of low-latency video streaming using the
+        <a href="//w3c.github.io/media-source/">Media Source Extensions
+        API</a>. The API is supported by all major browsers, with the
+        notable exception of Safari on most iOS devices (iPad devices with
+        iOS 13 or newer <b>do</b> support MSE).
+      </p>
+  
+      <p>
+         H.264 NAL units from the Raspberry Pi&trade; camera are encapsulated,
+         in real-time, into MPEG-4 ISO BMFF (ISO/IEC 14496-12) compliant
+         fragments. Each fragment is sent to this client via a WebSocket. The
+         client then appends each fragment to <code>mediaSource</code>.
+      </p>
+    </main>
+  </body>
+</html>

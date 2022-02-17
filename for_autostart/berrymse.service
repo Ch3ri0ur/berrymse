@@ -6,9 +6,9 @@ After=dev-video0.device
 [Service]
 Type=simple
 User=root
-WorkingDirectory=/home/pi/berrymse
+WorkingDirectory=/home/pi/berrymse/cmd/berryMSE
 ExecStartPre=/bin/sleep 10
-ExecStart=/home/pi/berrymse/armv7l/berrymse -l 0.0.0.0:80
+ExecStart=/home/pi/berrymse/cmd/berryMSE/armv7l/berrymse -l 0.0.0.0:80
 Restart=always
 
 [Install]
