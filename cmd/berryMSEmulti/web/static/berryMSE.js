@@ -6,7 +6,7 @@
             return;
         }
         if (wsTargetURL == null) {
-            wsTargetURL = "ws://" + location.hostname + (location.port ? ":" + location.port : "") + "/websocket";
+            wsTargetURL = "ws://" + location.hostname + (location.port ? ":" + location.port : "") + "/video_websocket";
         }
         let targetURL = wsTargetURL;
         

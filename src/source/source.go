@@ -23,33 +23,33 @@ type Source struct {
 	hub    *hub.Hub
 }
 
-func NewSource(h *hub.Hub, configuration config.Configurations) *Source {
+func NewSource(h *hub.Hub, cameraConfig config.CameraConfigurations) *Source {
 	// Open device
-	dev, err := v4l2.Open(configuration.Camera.SourceFD)
+	dev, err := v4l2.Open(cameraConfig.SourceFD)
 	if nil != err {
 		log.Fatal(err)
 	}
 
 	// Set pixel format
 	if err := dev.SetPixelFormat(
-		configuration.Camera.Width,
-		configuration.Camera.Height,
+		cameraConfig.Width,
+		cameraConfig.Height,
 		v4l2.V4L2_PIX_FMT_H264,
 	); nil != err {
 		log.Fatal(err)
 	}
 
 	// Set bitrate
-	if configuration.Camera.Bitrate > 0 {
+	if cameraConfig.Bitrate > 0 {
 		fmt.Println("Set Bitrate")
-		if err := dev.SetBitrate(int32(configuration.Camera.Bitrate)); nil != err {
+		if err := dev.SetBitrate(int32(cameraConfig.Bitrate)); nil != err {
 			log.Fatal(err)
 		}
 	}
 
-	if configuration.Camera.Rotation >= 0 {
+	if cameraConfig.Rotation >= 0 {
 		fmt.Println("Set Rotation")
-		if err := dev.SetRotation(int32(configuration.Camera.Rotation)); nil != err {
+		if err := dev.SetRotation(int32(cameraConfig.Rotation)); nil != err {
 			log.Fatal(err)
 		}
 	}

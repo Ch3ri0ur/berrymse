@@ -48,7 +48,8 @@ type CameraConfigurations struct {
 
 // ServerConfigurations Struct exported
 type ServerConfigurations struct {
-	URL string
+	URL       string
+	WebSocket string
 }
 
 // Flag & Configuration Loading ##################################################################################
@@ -59,8 +60,8 @@ type ServerConfigurations struct {
 var flagConfig string
 
 //Init methode
-//Defining Flags and Default values
-func FlagInit() {
+//Default Defining Flags and Default values
+func DefaultFlagInit() {
 
 	//Basic Type Flags
 	//PFlagtype(ConfigID,
@@ -89,6 +90,13 @@ func FlagInit() {
 		"l",
 		"localhost:2020",
 		"listen on host:port",
+	)
+
+	//Flag to selected an WebsocketName
+	flag.StringP("Server.WebSocket",
+		"s",
+		"video_websocket",
+		"Name of Websocket for Video Stream",
 	)
 
 	//Flag to change the Device input file / device nodes
@@ -120,7 +128,7 @@ func FlagInit() {
 	)
 
 	//Flag to change the rotation video
-		flag.IntP("Camera.Rotation",
+	flag.IntP("Camera.Rotation",
 		"r",
 		0,
 		"Rotation in 90degree Step\nOnly supported for RPI Camera\nOther Cameras need to use -1",

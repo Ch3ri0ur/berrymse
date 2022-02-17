@@ -17,12 +17,19 @@ each received buffer to the media source for playback.
 Download executable from releases and run on a Raspberry Pi 32-bit (Buster) with a Raspberry Pi camera as `/dev/video0`.
 
 
-
-
 This demo requires a Raspberry Pi with Camera Module (USB Video Class devices
 not currently supported). As it uses the Video4Linux2 interface to access the
 camera, the Broadcom v4l2 driver must be installed and the camera must be
 enabled in `/boot/config.txt`.
+
+!!! warning
+
+    The new Raspberry Pi OS Bullseye (RPI OS V11) comes with libcamera as the new camera driver stack. This new driver has a changed API and isn't supported in berryMSE. The Old Driver can be reactivated by changing in the ``/boot/config.txt`` a view Parameters. Remove camera_auto_detect and add two lines.
+
+    # Automatically load overlays for detected cameras
+    #camera_auto_detect=1
+    start_x=1
+    gpu_mem=128
 
 To fetch dependencies:
 
