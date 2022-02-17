@@ -3,7 +3,7 @@ module github.com/ch3ri0ur/berrymse
 go 1.17
 
 require (
-	github.com/ch3ri0ur/go-v4l2 v0.0.0-20220217132619-94b642655cc7
+	github.com/ch3ri0ur/go-v4l2 v0.0.0-20220217160916-a25be7c57c07
 	github.com/gorilla/websocket v1.4.2
 	github.com/markbates/pkger v0.17.1
 	github.com/spf13/pflag v1.0.5
