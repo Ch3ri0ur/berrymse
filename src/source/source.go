@@ -39,22 +39,28 @@ func NewSource(h *hub.Hub, configuration config.Configurations) *Source {
 		log.Fatal(err)
 	}
 
-	fmt.Println("before Set Bitrate")
-
 	// Set bitrate
 	if configuration.Camera.Bitrate > 0 {
+		fmt.Println("Set Bitrate")
 		if err := dev.SetBitrate(int32(configuration.Camera.Bitrate)); nil != err {
 			log.Fatal(err)
 		}
 	}
 
-	// fmt.Println("Set Rotation")
+	if configuration.Camera.Rotation >= 0 {
+		fmt.Println("Set Rotation")
+		if err := dev.SetRotation(int32(configuration.Camera.Rotation)); nil != err {
+			log.Fatal(err)
+		}
+	}
 
-	// if configuration.Camera.Bitrate > 0 {
-	// 	if err := v4l2.setCodecControl(dev.fd, 0x00980922, int32(90)); nil != err {
-	// 		log.Fatal(err)
-	// 	}
-	// }
+	// // Custom Configuration possible with
+	// dev.SetCustomUserControl(id uint32, value int32)
+	// dev.SetCustomCodecControl(id uint32, value int32)
+	// // Check device with "v4l2-ctl --all -d /dev/videoX" for IDs
+	// // User stuff = 0x00980000 - 0x0098ffff
+	// // Codec stuff = 0x00990000 - 0x0099ffff
+	// // e.g. user control vertical flip = 0x00980915
 
 	return &Source{
 		device: dev,
@@ -64,11 +70,13 @@ func NewSource(h *hub.Hub, configuration config.Configurations) *Source {
 
 func (s *Source) Run() {
 	// Start stream
+	fmt.Println("Soruce Run")
 	if err := s.device.Start(); nil != err {
 		log.Fatal(err)
+		fmt.Println(err)
 	}
 	defer s.device.Stop()
-
+	fmt.Println("Source started")
 	for {
 		select {
 		case b := <-s.device.C:

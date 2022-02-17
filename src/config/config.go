@@ -43,6 +43,7 @@ type CameraConfigurations struct {
 	Width    int
 	Height   int
 	Bitrate  int
+	Rotation int
 }
 
 // ServerConfigurations Struct exported
@@ -115,7 +116,14 @@ func FlagInit() {
 	flag.IntP("Camera.Bitrate",
 		"b",
 		1500000,
-		"Bitrate",
+		"Bitrate in bit/s!\nOnly supported for RPI Camera\nOther Cameras need to use -1",
+	)
+
+	//Flag to change the rotation video
+		flag.IntP("Camera.Rotation",
+		"r",
+		0,
+		"Rotation in 90degree Step\nOnly supported for RPI Camera\nOther Cameras need to use -1",
 	)
 }
 
