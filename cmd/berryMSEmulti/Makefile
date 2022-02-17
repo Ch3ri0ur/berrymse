@@ -57,7 +57,7 @@ else #If Linux
 # - Setting env.-variables and let Go build executable and store it in folder armv6l (-w No DWARF debugging information, -s No generation of the Go symbol table)
 armv6l: pkged.go
 	mkdir -p armv6l
-	GOARCH=arm GOARM=7 GOOS=linux go build -v -o ./armv6l/berrymse -ldflags="-w -s"
+	GOARCH=arm GOARM=6 GOOS=linux go build -v -o ./armv6l/berrymse -ldflags="-w -s"
 
 #Build instruction for ARMV7  on Linux
 # - Creating folder armv7l

@@ -1,5 +1,8 @@
 // BerryMSE: Low-latency live video via Media Source Extensions (MSE)
 // Copyright (C) 2020 Chris Hiszpanski
+// https://github.com/thinkski/berrymse
+// Modified Work Copyright (C) 2022 Christian Wappler and Maximilian Koch
+// https://github.com/thinkski/berrymse
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Affero General Public License as

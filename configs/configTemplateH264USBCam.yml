@@ -1,0 +1,9 @@
+camera:
+  sourceFD: "/dev/video3"
+  width: 1280
+  height: 720
+  bitrate: -1
+  rotation: -1
+
+server:
+  url: "0.0.0.0:80"
