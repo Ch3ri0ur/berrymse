@@ -45,6 +45,9 @@ Windows:
     go get -v ./...
     go install github.com/markbates/pkger/cmd/pkger
 
+Navigate to ./cmd/berryMSE
+
+    cd cmd/berryMSE
 
 To build:
 
