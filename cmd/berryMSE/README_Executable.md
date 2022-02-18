@@ -65,6 +65,10 @@ Run with sudo and visit website under ```localhost```.
 ## Register Service
 To register the executable as an autostart service:
 
+Ensure that the paths in `berrymse.service` are correct. 
+
+Default is to clone the directory into the `/home/pi/` directory
+
 ```
 cd for_autostart
 sudo ./register.sh
