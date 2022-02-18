@@ -36,11 +36,9 @@ More flags for ./berrymse:
 
 Default config file name is `config.yml` and default path for it is local directory.
 
-!!! info inline end
+If these configurations don't work/match your camera this can freeze the camera stack. e.g. using resolutions above 1920 times 1080 created crashes.
 
-    If these configurations don't work/match your camera this can freeze the camera stack. e.g. using resolutions above 1920 times 1080 created crashes.
-
-    USB cameras don't support the advanced settings rotation and bitrate and need a -1 as parameter.
+USB cameras don't support the advanced settings rotation and bitrate and need a -1 as parameter.
 
 ``` yaml title="config.yml"
 camera:

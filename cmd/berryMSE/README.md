@@ -40,5 +40,3 @@ For example:
     ./berrymse -l 192.168.2.1:2020 -d /dev/video0
 
 A more detailed usage instruction can be found in the [README_Executable](README_Executable.md).
-
-

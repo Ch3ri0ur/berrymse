@@ -12,51 +12,11 @@ Frames are packaged into MPEG-4 ISO BMFF (ISO/IEC 14496-12) compliant
 fragments and sent via a websocket to the browser client. The client appends
 each received buffer to the media source for playback.
 
-## Quickstart
+## Demo
 
-Download executable from releases and run on a Raspberry Pi 32-bit (Buster) with a Raspberry Pi camera as `/dev/video0`.
+The Demo executable can be downloaded from the release page and run on a Raspberry Pi 32-bit (Buster) with a Raspberry Pi camera as `/dev/video0`.
 
-
-This demo requires a Raspberry Pi with Camera Module (USB Video Class devices
-not currently supported). As it uses the Video4Linux2 interface to access the
-camera, the Broadcom v4l2 driver must be installed and the camera must be
-enabled in `/boot/config.txt`.
-
-!!! warning
-
-    The new Raspberry Pi OS Bullseye (RPI OS V11) comes with libcamera as the new camera driver stack. This new driver has a changed API and isn't supported in berryMSE. The Old Driver can be reactivated by changing in the ``/boot/config.txt`` a view Parameters. Remove camera_auto_detect and add two lines.
-
-    # Automatically load overlays for detected cameras
-    #camera_auto_detect=1
-    start_x=1
-    gpu_mem=128
-
-To fetch dependencies:
-
-Linux:
-
-    GOOS=linux go get -v ./...
-    go install github.com/markbates/pkger/cmd/pkger
-
-
-Windows:
-
-    set GOOS=linux
-    go get -v ./...
-    go install github.com/markbates/pkger/cmd/pkger
-
-Navigate to ./cmd/berryMSE
-
-    cd cmd/berryMSE
-
-To build:
-
-    make
-
-or:
-
-    make armv6l
-    make armv7l
+The demo files can be found in ``/cmd/berrymse`` with a build and usage instruction.
 
 To run, copy the appropriate `berrymse` executable to the Raspberry Pi and run:
 
@@ -72,11 +32,71 @@ the `armv7l/berrymse` executable.
 The webpage will show a live video stream with approximately 200ms of latency.
 The browser will buffer frames, providing a lookback window.
 
-## Autostart service
-
-In order to run the executable automatically please use the `register.sh` script from the for_autostart folder. There you can find a set of convenience scripts.
 ## Settings
 
-Bitrate on default width height at least 1 400 000, if lower it will break
+The currently implemented configurations are:
 
-width height seems to not work
+-  H264 bitrate:
+    Changes the bitrate of the video and the encoder will now try to only produce a [H264 Stream](Theory/Video/h264.md).
+- Video height resolution:
+    Changes the video height resolution.
+- Video width resolution:
+    Changes the video width resolution.
+- Video rotation:
+    Changes the video rotation resolution. It can only be changed in 90 degree steps and rotates the picture clockwise.
+- Video source:
+    Changes the source Device Node of the video.
+- Server URL address:
+    Changes the URL address were the video and website gets published to.
+- Server websocket name:
+    Changes the websocket name were the video packages can get received. This will break the demo page!
+
+### Flags
+
+Flags for ./berrymse:
+
+    -c, -- string                  Use config Path/Name.yml
+                                    Default Path is current directory! (default "config.yml")
+    -b, --Camera.Bitrate int       Bitrate in bit/s!
+                                    Only supported for RPI Camera
+                                    Other Cameras need to use -1 (default 1500000)
+    -h, --Camera.Height int        Height Resolution (default 720)
+    -r, --Camera.Rotation int      Rotation in 90degree Step
+                                    Only supported for RPI Camera
+                                    Other Cameras need to use -1
+    -d, --Camera.SourceFD string   Use camera /dev/videoX (default "/dev/video0")
+    -w, --Camera.Width int         Width Resolution (default 1280)
+    -l, --Server.URL string        listen on host:port (default "localhost:2020")
+
+
+### Config File
+
+Default config file name is `config.yml` and default path for it is local directory.
+
+If these configurations don't work/match your camera this can freeze the camera stack. e.g. using resolutions above 1920 times 1080 created crashes.
+
+USB cameras don't support the advanced settings rotation and bitrate and need a -1 as parameter.
+
+``` yaml title="config.yml"
+camera:
+  sourceFD: "/dev/video0"
+  width: 1280
+  height: 720
+  bitrate: 1500000
+  rotation: 0
+
+server:
+  url: "0.0.0.0:80"
+```
+
+## Project folder structure
+
+- berrymse/                 : Project folder
+    - cmd/                  : CMD Applications
+        - berryMSE          : Demo
+        - berryMSEmulti     : Demo for multiple streams
+    - src/                  : Contains library
+        - berryMSE          : Main Class
+        - ...
+    - configs/              : ConfigTemplates
+
