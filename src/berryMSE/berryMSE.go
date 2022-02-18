@@ -23,7 +23,7 @@ import (
 	Hub "github.com/ch3ri0ur/berrymse/src/hub"
 )
 
-func BerryMSE(configuration Config.Configurations, WebPageFiles http.FileSystem) {
+func RunBerryMSE(configuration Config.Configurations, WebPageFiles http.FileSystem) {
 	// Parse host:port into host and port
 	host, port, err := net.SplitHostPort(configuration.Server.URL)
 	if nil != err {

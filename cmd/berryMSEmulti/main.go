@@ -24,7 +24,6 @@ import (
 	//CMD Prints
 	"fmt"
 
-
 	//For static website stuff in binary executable github.com/markbates/pkger
 	"github.com/markbates/pkger"
 
@@ -34,7 +33,7 @@ import (
 	Config "github.com/ch3ri0ur/berrymse/src/config"
 
 	//BerryMSE Main Pkg
-	BerryMSE "github.com/ch3ri0ur/berrymse/src/BerryMSE"
+	BerryMSE "github.com/ch3ri0ur/berrymse/src/berryMSE"
 )
 
 //Init methode
@@ -48,6 +47,6 @@ func main() {
 	fmt.Println("Starting BerryMSE Streaming")
 
 	var configuration = Config.SetupConfigFlags()
-	BerryMSE.BerryMSE(configuration, pkger.Dir("/cmd/berryMSEmulti/web/static"))
+	BerryMSE.RunBerryMSE(configuration, pkger.Dir("/cmd/berryMSEmulti/web/static"))
 
 }
