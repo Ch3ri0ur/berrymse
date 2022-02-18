@@ -269,17 +269,17 @@ func writeAVC1(w io.Writer, width, height uint16, sps, pps []byte) {
 // See ISO/IEC 14496-15:2004 5.3.4.1.2
 func writeAVCC(w io.Writer, sps, pps []byte) {
 	writeTag(w, "avcC", func(w io.Writer) {
-		writeInt(w, 1, 1)        // configuration version
-		writeInt(w, 0x4d, 1)     // H.264 profile (0x64 == high)
-		writeInt(w, 0x40, 1)     // H.264 profile compatibility
-		writeInt(w, 0x29, 1)     // H.264 level (0x28 == 4.0)
-		writeInt(w, 0xff, 1)     // nal unit length - 1 (upper 6 bits == 1)
-		writeInt(w, 0xe1, 1)     // number of sps (upper 3 bits == 1)
-		writeInt(w, len(sps), 2) //len of sps
-		w.Write(sps)             //sps
-		writeInt(w, 1, 1)        // number of pps
-		writeInt(w, len(pps), 2) //len pps
-		w.Write(pps)             //pps
+		writeInt(w, 1, 1)           // configuration version
+		writeInt(w, int(sps[1]), 1) // H.264 profile (0x64 == high)
+		writeInt(w, int(sps[2]), 1) // H.264 profile compatibility
+		writeInt(w, int(sps[3]), 1) // H.264 level (0x28 == 4.0)
+		writeInt(w, 0xff, 1)        // nal unit length - 1 (upper 6 bits == 1)
+		writeInt(w, 0xe1, 1)        // number of sps (upper 3 bits == 1)
+		writeInt(w, len(sps), 2)    //len of sps
+		w.Write(sps)                //sps
+		writeInt(w, 1, 1)           // number of pps
+		writeInt(w, len(pps), 2)    //len pps
+		w.Write(pps)                //pps
 	})
 }
 
@@ -291,6 +291,7 @@ func writeSTSZ(w io.Writer) {
 		writeInt(w, 0, 4) // sample count
 	})
 }
+
 // Sample to Chunk Box
 func writeSTSC(w io.Writer) {
 	writeTag(w, "stsc", func(w io.Writer) {
