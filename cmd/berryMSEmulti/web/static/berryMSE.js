@@ -9,7 +9,7 @@
             wsTargetURL = "ws://" + location.hostname + (location.port ? ":" + location.port : "") + "/video_websocket";
         }
         let targetURL = wsTargetURL;
-        
+
         let ws = null;
         let videoElement = videoElementObj;
         let mediaSource = new MediaSource();
@@ -55,46 +55,63 @@
             // profile, flags, and level (respectively, one byte each). See
             // ITU-T H.264 specification for details.
             let mediaSource = e.target;
-            let mime = 'video/mp4; codecs="avc1.640028"';
-            let sourceBuffer = mediaSource.addSourceBuffer(mime);
+            let sourceBuffer = null;
 
             // start websocket connection function
             function startConnection() {
                 // remote pushes media segments via websocket
                 ws = new WebSocket(wsTargetURL);
-                // ws = new WebSocket("ws://" + "79.208.31.62" + "/websocket");
 
                 ws.binaryType = "arraybuffer";
+                // queue for saving frames to be played
                 let queue = [];
+                let is_first = true;
 
-                // received file or media segment
+                // received media segment
                 ws.onmessage = function (event) {
-                    // console.log("message")
-                    // check if frame is iframe or dframe
+                    // check data is a frame (has mdat) and if it is an inter(i)-frame
                     let [is_mdat, is_iframe] = checkFrameType(event.data);
+                    // if it is not a frame it is probably a setup packet and still goes into the Buffer
                     if (!is_mdat) {
-                        console.log("whoknowsframe");
-
-                        sourceBuffer.appendBuffer(event.data);
-                        console.log("not mdat");
-                        return;
+                        // Get the first websocket message ( it should have ftyp moov with information about the stream)
+                        if (is_first) {
+                            is_first = false;
+                            // dynamically set the codec string (only works for h.264 in mp4 with avcC box)
+                            let codec_string = findCodecString(event.data); // profile, profile compatibility and level as hex string
+                            console.log("dynamically set codec string: " + codec_string);
+                            let mime = 'video/mp4; codecs="avc1.' + codec_string + '"';
+                            // added sourcebuffer here, because information about the codec is necessary
+                            sourceBuffer = mediaSource.addSourceBuffer(mime);
+                            // add update function for sourcebuffer
+                            onupdate = function () {
+                                if (queue.length > 0 && !sourceBuffer.updating) {
+                                    sourceBuffer.appendBuffer(queue.shift());
+                                }
+                            };
+                            sourceBuffer.addEventListener("updateend", onupdate, false);
+                            sourceBuffer.appendBuffer(event.data);
+                            return;
+                        }
+                        // this should not be reached^
+                        console.log("Got another ftyp and moov packet ");
                     }
+                    // data is a frame but frame type does not match -> skip
                     if (is_iframe === null) {
-                        console.log("not iframe or dframe");
-
+                        console.log("not iframe or pframe");
                         return;
                     }
+                    // data is an iframe
                     if (is_iframe === true) {
-                        // iframe
+                        // reset queue
                         queue.length = 0;
-                        // // sourceBuffer.remove(0, sourceBuffer.buffered.end(sourceBuffer.buffered.length));
+                        // if the sourceBuffer is still updating use queue otherwise append buffer
                         if (sourceBuffer.updating) {
                             queue.push(event.data);
                         } else {
-                            // console.log("iframe");
                             sourceBuffer.appendBuffer(event.data);
                         }
 
+                        // if auto skip is enabled and to much is buffered skip forward, except if the video is hidden (tab is in background)
                         let buffered = videoElement.buffered;
                         if (buffered.length > 0) {
                             if (auto_skip && videoElement.currentTime < videoElement.buffered.end(videoElement.buffered.length - 1) - 1) {
@@ -107,17 +124,18 @@
                             }
                         }
                     } else {
-                        // dframe
-
+                        // data is not an iframe
+                        // if the sourceBuffer is still updating or there are frames in the queue, use the queue. Otherwise append to buffer.
                         if (sourceBuffer.updating || queue.length > 0) {
                             queue.push(event.data);
                         } else {
-                            // console.log("dframe");
                             sourceBuffer.appendBuffer(event.data);
                         }
                     }
                 };
+
                 // remote closed websocket. end-of-stream.
+                // Looked into automatically restarting the stream, but that creates a recursive problem right now.
                 ws.onclose = function (event) {
                     console.log("remote closed websocket");
                     // mediaSource.endOfStream();
@@ -130,13 +148,8 @@
                 ws.onerror = function (e) {
                     console.log("Error: " + e.data);
                 };
-                onupdate = function () {
-                    if (queue.length > 0 && !sourceBuffer.updating) {
-                        // console.log("updateend");
-                        sourceBuffer.appendBuffer(queue.shift());
-                    }
-                };
-                sourceBuffer.addEventListener("updateend", onupdate, false);
+
+                //update function for sourceBuffer, it checks if there are any frames in the queue and if so appends them
             }
 
             // start websocket connection
@@ -144,19 +157,48 @@
         }
     };
 
+    function findCodecString(data) {
+        // check in trun box if data is an iframe or pframe
+        let data_array = new Uint8Array(data);
+
+        // check function to search for index of avcC box
+        let avcC = new Uint8Array([97, 118, 99, 67]); // spells avcC
+        function isavcC(element, index, array) {
+            // if the first element matches, check the rest else return false
+            if (element == 97) {
+                let tmp = array.slice(index, index + 4);
+                if (arraybufferEqual(tmp.buffer, avcC.buffer)) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        index = data_array.findIndex(isavcC);
+        if (index === -1) {
+            throw Error("avcC not found");
+        }
+        // get condec data relative to found index
+        let codec_data_buffer = data.slice(index + 4 + 1, index + 8);
+        let bufferToHex = (buffer) => {
+            return [...new Uint8Array(buffer)].map((b) => b.toString(16).padStart(2, "0")).join("");
+        };
+        return bufferToHex(codec_data_buffer);
+    }
+
     function checkFrameType(data) {
-        let mdat = new Uint8Array([116, 114, 117, 110]);
+        // check in trun box if data is an iframe or pframe
+        let mdat = new Uint8Array([116, 114, 117, 110]); // spells trun
         let is_iframe = null;
         let is_mdat = false;
         if (arraybufferEqual(data.slice(76, 80), mdat.buffer)) {
-            // console.log("mdat");
+            // check if mdat is in correct position if yes -> it is a frame (has mdat)
             is_mdat = true;
 
             let view = new Uint8Array(data.slice(92, 93));
-            // check if iframe or dframe
-            // console.log(view);
+            // if it is a frame we can check if it is an iframe
             if (view[0] === 1) {
-                // console.log("dframe");
+                // console.log("not iframe");
                 is_iframe = false;
             } else if (view[0] === 2) {
                 // console.log("iframe");
@@ -166,6 +208,7 @@
         return [is_mdat, is_iframe];
     }
 
+    // helper function to check if two arraybuffers are equal
     function arraybufferEqual(buf1, buf2) {
         if (buf1 === buf2) {
             return true;
@@ -185,6 +228,7 @@
             }
         }
         return true;
+
     }
 
     window.BerryMSE = {

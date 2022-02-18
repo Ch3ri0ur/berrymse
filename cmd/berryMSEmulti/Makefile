@@ -82,7 +82,7 @@ endif
 
 #Methode pkger compresses the content of web/static
 pkged.go: web/**
-	pkger -o ./cmd/berryMSE
+	pkger -o ./cmd/berryMSEmulti
 
 #Register Methodes avoid a conflict with a file or folder with the same name
 .PHONY: armv6l armv7l
